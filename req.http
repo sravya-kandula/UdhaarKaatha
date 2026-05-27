@@ -1,0 +1,106 @@
+### SHOPKEEPER REGISTER
+
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Sravya Store",
+  "email": "shop@gmail.com",
+  "password": "Sravya@12345",
+  "role": "shopkeeper"
+}
+
+### SHOPKEEPER LOGIN
+
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "shop@gmail.com",
+  "password":"Sravya@12345"
+}
+### ADD CUSTOMER
+
+POST http://localhost:3000/api/customers/add
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### SEARCH CUSTOMER
+
+GET http://localhost:3000/api/customers/filter?search=Ramesh
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+
+{
+  "name": "Ramesh",
+  "phone": "9876543210",
+  "address": "Hyderabad",
+  "udharLimit": 5000,
+  "finePerDay": 10,
+  "dueDate": "2026-06-10"
+}
+### GET ALL CUSTOMERS
+
+GET http://localhost:3000/api/customers
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### ACTIVE CUSTOMERS
+
+GET http://localhost:3000/api/customers/filter?status=active
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### FILTER + SEARCH
+
+GET http://localhost:3000/api/customers/filter?status=active&search=Ram
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### ADD UDHAR TRANSACTION
+
+POST http://localhost:3000/api/transactions/add
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+
+{
+  "customerId": "6a169ed801be115f6ae14bc0",
+  "items": [
+    {
+      "itemName": "Rice",
+      "quantity": 2,
+      "price": 100
+    },
+    {
+      "itemName": "Oil",
+      "quantity": 1,
+      "price": 50
+    }
+  ],
+  "totalAmount": 250,
+  "paymentType": "udhar",
+  "paidAmount": 0,
+  "dueDate": "2026-06-15"
+}
+### CUSTOMER LEDGER
+
+GET http://localhost:3000/api/transactions/ledger/6a169ed801be115f6ae14bc0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### RECORD PAYMENT
+
+POST http://localhost:3000/api/transactions/payment
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+
+{
+  "customerId": "6a169ed801be115f6ae14bc0",
+  "amount": 100
+}
+### DASHBOARD STATS
+
+GET http://localhost:3000/api/dashboard
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### ARCHIVE CUSTOMER
+
+PATCH http://localhost:3000/api/customers/archive/6a169ed801be115f6ae14bc0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### GET ARCHIVED CUSTOMERS
+
+GET http://localhost:3000/api/customers/archived
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
+### RESTORE CUSTOMER
+
+PATCH http://localhost:3000/api/customers/restore/6a169ed801be115f6ae14bc0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTY5ZTBmMDFiZTExNWY2YWUxNGJiZiIsInJvbGUiOiJzaG9wa2VlcGVyIiwiaWF0IjoxNzc5ODY3MTcwLCJleHAiOjE3ODA0NzE5NzB9.0WX16pZQH8vfLTkTkGZ4nLscxDUl7OuJWdOmErJ3cNU
