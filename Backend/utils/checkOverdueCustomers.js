@@ -11,6 +11,7 @@ const checkOverdueCustomers = async () => {
     const overdueCustomers = await Customer.find({
       dueDate: { $lt: today },
       currentBalance: { $gt: 0 },
+      status: { $ne: "overdue" },
     });
 
     for (const customer of overdueCustomers) {
@@ -27,6 +28,7 @@ const checkOverdueCustomers = async () => {
 
       // optional: temporary field
       customer.totalFine = fine;
+      customer.currentBalance = customer.currentBalance + fine;
 
       await Notification.create({
         customerId: customer._id,

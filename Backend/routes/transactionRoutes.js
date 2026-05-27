@@ -4,6 +4,7 @@ import {
   addTransaction,
   getCustomerLedger,
   recordPayment,
+  getCustomerTransactions,
 } from "../controllers/transactionController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -14,6 +15,7 @@ const router = express.Router();
 // ADD TRANSACTION
 router.post("/add", protect, authorizeRoles("shopkeeper"), addTransaction);
 
+// GET CUSTOMER LEDGER
 router.get(
   "/ledger/:customerId",
   protect,
@@ -21,6 +23,15 @@ router.get(
   getCustomerLedger,
 );
 
+// RECORD PAYMENT
 router.post("/payment", protect, authorizeRoles("shopkeeper"), recordPayment);
+
+// CUSTOMER DASHBOARD TRANSACTIONS
+router.get(
+  "/customer",
+  protect,
+  authorizeRoles("customer"),
+  getCustomerTransactions,
+);
 
 export default router;

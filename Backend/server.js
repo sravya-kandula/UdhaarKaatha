@@ -41,3 +41,11 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+checkOverdueCustomers();
+// CHECK EVERY 1 HOUR
+setInterval(
+  () => {
+    checkOverdueCustomers();
+  },
+  60 * 60 * 1000,
+);

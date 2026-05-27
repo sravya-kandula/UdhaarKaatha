@@ -224,3 +224,43 @@ export const recordPayment = async (req, res) => {
     });
   }
 };
+// GET CUSTOMER TRANSACTIONS
+export const getCustomerTransactions = async (req, res) => {
+  try {
+    const customerId = req.user.id;
+
+    const transactions = await Transaction.find({
+      customerId,
+    })
+      .populate("shopkeeperId", "name")
+      .sort({
+        createdAt: -1,
+      });
+
+    // TOTALS
+    let totalPending = 0;
+    let totalPaid = 0;
+    let totalFine = 0;
+
+    transactions.forEach((transaction) => {
+      totalPending += transaction.remainingAmount;
+
+      totalPaid += transaction.paidAmount;
+
+      totalFine += transaction.fineAmount || 0;
+    });
+
+    res.status(200).json({
+      success: true,
+      transactions,
+      totalPending,
+      totalPaid,
+      totalFine,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
