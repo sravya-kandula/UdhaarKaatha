@@ -6,45 +6,59 @@ export const getDashboardStats = async (req, res) => {
   try {
     const shopkeeperId = req.user.id;
 
-    // total customers
-    const totalCustomers = await Customer.countDocuments({
-      shopkeeperId,
-    });
-
-    // active customers
-    const activeCustomers = await Customer.countDocuments({
-      shopkeeperId,
-      status: "active",
-    });
-
-    // cleared customers
-    const clearedCustomers = await Customer.countDocuments({
-      shopkeeperId,
-      status: "cleared",
-    });
-
-    // overdue customers
-    const overdueCustomers = await Customer.countDocuments({
-      shopkeeperId,
-      status: "overdue",
-    });
-
-    // total pending balance
+    // GET ALL CUSTOMERS
     const customers = await Customer.find({
       shopkeeperId,
+    }).sort({
+      createdAt: -1,
     });
 
+    // ADD TRANSACTIONS TO EACH CUSTOMER
+    const customersWithTransactions = await Promise.all(
+      customers.map(async (customer) => {
+        const transactions = await Transaction.find({
+          customerId: customer._id,
+        }).sort({
+          createdAt: -1,
+        });
+
+        return {
+          ...customer._doc,
+          transactions,
+        };
+      }),
+    );
+
+    // TOTAL CUSTOMERS
+    const totalCustomers = customers.length;
+
+    // ACTIVE CUSTOMERS
+    const activeCustomers = customers.filter(
+      (customer) => customer.status === "active",
+    ).length;
+
+    // CLEARED CUSTOMERS
+    const clearedCustomers = customers.filter(
+      (customer) => customer.status === "cleared",
+    ).length;
+
+    // OVERDUE CUSTOMERS
+    const overdueCustomers = customers.filter(
+      (customer) => customer.status === "overdue",
+    ).length;
+
+    // TOTAL PENDING BALANCE
     const totalPendingBalance = customers.reduce(
       (acc, customer) => acc + customer.currentBalance,
       0,
     );
 
-    // total transactions
+    // TOTAL TRANSACTIONS
     const totalTransactions = await Transaction.countDocuments({
       shopkeeperId,
     });
 
-    // total collections
+    // TOTAL COLLECTIONS
     const paymentTransactions = await Transaction.find({
       shopkeeperId,
       transactionType: "payment",
@@ -67,6 +81,8 @@ export const getDashboardStats = async (req, res) => {
         totalTransactions,
         totalCollections,
       },
+
+      customers: customersWithTransactions,
     });
   } catch (error) {
     res.status(500).json({
@@ -75,6 +91,7 @@ export const getDashboardStats = async (req, res) => {
     });
   }
 };
+
 // RECENT TRANSACTIONS
 export const getRecentTransactions = async (req, res) => {
   try {
@@ -101,6 +118,7 @@ export const getRecentTransactions = async (req, res) => {
     });
   }
 };
+
 // MONTHLY ANALYTICS
 export const getMonthlyAnalytics = async (req, res) => {
   try {
@@ -114,12 +132,12 @@ export const getMonthlyAnalytics = async (req, res) => {
     let totalCollections = 0;
 
     transactions.forEach((transaction) => {
-      // udhar amount
+      // TOTAL UDHAR
       if (transaction.paymentType === "udhar") {
         totalUdhar += transaction.remainingAmount;
       }
 
-      // collections
+      // TOTAL COLLECTIONS
       if (transaction.transactionType === "payment") {
         totalCollections += transaction.paidAmount;
       }
@@ -141,6 +159,7 @@ export const getMonthlyAnalytics = async (req, res) => {
     });
   }
 };
+
 // TOP CUSTOMERS
 export const getTopCustomers = async (req, res) => {
   try {

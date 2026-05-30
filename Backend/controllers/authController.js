@@ -2,19 +2,28 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+// FIXED SHOPS
+const allowedShops = [
+  "Sri Lakshmi Kirana Store",
+  "Annapurna Hotel",
+  "Apollo Medical Store",
+  "Fresh Basket Store",
+  "Royal Bakery",
+];
+
 // REGISTER USER
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, phone, email, password, role, shopName } = req.body;
 
-    // Check empty fields
+    // EMPTY CHECK
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "All fields are required",
       });
     }
 
-    // Name validation
+    // NAME VALIDATION
     const nameRegex = /^[A-Za-z\s]{3,30}$/;
 
     if (!nameRegex.test(name)) {
@@ -24,7 +33,22 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Email validation
+    // PHONE VALIDATION
+    if (!phone) {
+      return res.status(400).json({
+        message: "Phone number is required",
+      });
+    }
+
+    const phoneRegex = /^[0-9]{10}$/;
+
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        message: "Phone number must be 10 digits",
+      });
+    }
+
+    // EMAIL VALIDATION
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(email)) {
@@ -33,8 +57,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Password validation
-    // Minimum 6 chars, 1 uppercase, 1 lowercase, 1 number
+    // PASSWORD VALIDATION
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
     if (!passwordRegex.test(password)) {
@@ -44,8 +67,15 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Check existing user
+    // CHECK EXISTING EMAIL
     const existingUser = await User.findOne({ email });
+    const existingPhone = await User.findOne({ phone });
+
+    if (existingPhone) {
+      return res.status(400).json({
+        message: "Phone number already registered",
+      });
+    }
 
     if (existingUser) {
       return res.status(400).json({
@@ -53,18 +83,50 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Hash password
+    // SHOPKEEPER VALIDATION
+    if (role === "shopkeeper") {
+      // SHOP REQUIRED
+      if (!shopName) {
+        return res.status(400).json({
+          message: "Please select a shop",
+        });
+      }
+
+      // VALID SHOP CHECK
+      if (!allowedShops.includes(shopName)) {
+        return res.status(400).json({
+          message: "Invalid shop selected",
+        });
+      }
+
+      // ONE SHOPKEEPER PER SHOP
+      const existingShopkeeper = await User.findOne({
+        role: "shopkeeper",
+        shopName,
+      });
+
+      if (existingShopkeeper) {
+        return res.status(400).json({
+          message: "This shop already has a registered shopkeeper",
+        });
+      }
+    }
+
+    // HASH PASSWORD
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // CREATE USER
     const user = await User.create({
       name,
+      phone,
       email,
       password: hashedPassword,
       role,
+      shopName: role === "shopkeeper" ? shopName : "",
     });
 
     res.status(201).json({
+      success: true,
       message: "User registered successfully",
       user,
     });
@@ -78,16 +140,16 @@ export const registerUser = async (req, res) => {
 // LOGIN USER
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role, shopName } = req.body;
 
-    // Empty field check
+    // EMPTY CHECK
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
-    // Email format validation
+    // EMAIL VALIDATION
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(email)) {
@@ -96,7 +158,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Find user
+    // FIND USER
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -105,7 +167,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Compare passwords
+    // PASSWORD CHECK
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -114,7 +176,29 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Generate JWT token
+    // ROLE CHECK
+    if (role && user.role !== role) {
+      return res.status(400).json({
+        message: "Invalid role selected",
+      });
+    }
+
+    // SHOP VALIDATION FOR SHOPKEEPER
+    if (user.role === "shopkeeper") {
+      if (!shopName) {
+        return res.status(400).json({
+          message: "Please select shop",
+        });
+      }
+
+      if (user.shopName !== shopName) {
+        return res.status(400).json({
+          message: "Shop name does not match",
+        });
+      }
+    }
+
+    // TOKEN
     const token = jwt.sign(
       {
         id: user._id,
@@ -127,6 +211,7 @@ export const loginUser = async (req, res) => {
     );
 
     res.status(200).json({
+      success: true,
       message: "Login successful",
       token,
       user,

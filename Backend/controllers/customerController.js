@@ -1,16 +1,22 @@
 import Customer from "../models/Customer.js";
+import User from "../models/User.js";
 
 // ADD CUSTOMER
 export const addCustomer = async (req, res) => {
   try {
     const { name, phone, address, udharLimit, finePerDay, dueDate } = req.body;
 
-    // logged in shopkeeper id
     const shopkeeperId = req.user.id;
 
-    // create customer
+    // CHECK IF CUSTOMER HAS REGISTERED ACCOUNT
+    const user = await User.findOne({
+      phone,
+      role: "customer",
+    });
+
     const customer = await Customer.create({
       shopkeeperId,
+      userId: user ? user._id : null,
       name,
       phone,
       address,

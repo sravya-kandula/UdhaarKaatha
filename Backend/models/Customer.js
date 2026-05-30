@@ -8,6 +8,13 @@ const customerSchema = new mongoose.Schema(
       required: true,
     },
 
+    // LINKED CUSTOMER USER ACCOUNT
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     name: {
       type: String,
       required: true,
@@ -38,6 +45,7 @@ const customerSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
     totalFine: {
       type: Number,
       default: 0,
@@ -52,6 +60,7 @@ const customerSchema = new mongoose.Schema(
       enum: ["active", "cleared", "overdue", "blocked", "archived"],
       default: "active",
     },
+
     isArchived: {
       type: Boolean,
       default: false,

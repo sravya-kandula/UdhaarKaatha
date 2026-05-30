@@ -16,6 +16,8 @@ import Notifications from "./pages/Notifications";
 import CustomerDashboard from "./pages/CustomerDashboard";
 
 import CreateTransaction from "./pages/CreateTransaction";
+import CustomerDetailsPage from "./pages/CustomerDetailsPage";
+import CustomerShopPage from "./pages/CustomerShopPage";
 
 function App() {
   return (
@@ -30,8 +32,18 @@ function App() {
       {/* SHOPKEEPER */}
       <Route path="/shopkeeper/dashboard" element={<ShopkeeperDashboard />} />
 
+      <Route
+        path="/shopkeeper/customer/:id"
+        element={<CustomerDetailsPage />}
+      />
+
       {/* CUSTOMER */}
       <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+
+      <Route
+        path="/customer/shop/:shopkeeperId"
+        element={<CustomerShopPage />}
+      />
 
       {/* CUSTOMERS */}
       <Route path="/customers" element={<Customers />} />

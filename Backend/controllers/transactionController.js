@@ -225,14 +225,31 @@ export const recordPayment = async (req, res) => {
   }
 };
 // GET CUSTOMER TRANSACTIONS
+// GET CUSTOMER TRANSACTIONS
+// GET CUSTOMER TRANSACTIONS
 export const getCustomerTransactions = async (req, res) => {
   try {
-    const customerId = req.user.id;
+    // LOGGED-IN CUSTOMER USER ID
+    const userId = req.user.id;
 
+    // FIND CUSTOMER PROFILE LINKED TO USER
+    const customer = await Customer.findOne({
+      userId,
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer profile not linked",
+      });
+    }
+
+    // GET ALL TRANSACTIONS OF THIS CUSTOMER
     const transactions = await Transaction.find({
-      customerId,
+      customerId: customer._id,
     })
-      .populate("shopkeeperId", "name")
+      .populate("shopkeeperId", "name email shopName")
+      .populate("customerId", "name phone")
       .sort({
         createdAt: -1,
       });
@@ -242,17 +259,47 @@ export const getCustomerTransactions = async (req, res) => {
     let totalPaid = 0;
     let totalFine = 0;
 
-    transactions.forEach((transaction) => {
-      totalPending += transaction.remainingAmount;
+    // GROUP BY SHOP
+    const shopMap = {};
 
-      totalPaid += transaction.paidAmount;
+    transactions.forEach((transaction) => {
+      totalPending += transaction.remainingAmount || 0;
+
+      totalPaid += transaction.paidAmount || 0;
 
       totalFine += transaction.fineAmount || 0;
+
+      const shopId = transaction.shopkeeperId?._id?.toString();
+
+      if (!shopId) return;
+
+      // CREATE SHOP ENTRY
+      if (!shopMap[shopId]) {
+        shopMap[shopId] = {
+          shopkeeperId: shopId,
+          shopName:
+            transaction.shopkeeperId?.shopName ||
+            transaction.shopkeeperId?.name ||
+            "Shop",
+          totalPending: 0,
+          totalTransactions: 0,
+          latestTransaction: transaction.createdAt,
+        };
+      }
+
+      // UPDATE SHOP DATA
+      shopMap[shopId].totalPending += transaction.remainingAmount || 0;
+
+      shopMap[shopId].totalTransactions += 1;
     });
+
+    const shops = Object.values(shopMap);
 
     res.status(200).json({
       success: true,
+      customer,
       transactions,
+      shops,
       totalPending,
       totalPaid,
       totalFine,
