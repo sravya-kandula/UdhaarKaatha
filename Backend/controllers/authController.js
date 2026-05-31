@@ -246,6 +246,17 @@ export const loginUser = async (req, res) => {
     console.log("User ID:", user._id);
     console.log("User Role:", user.role);
 
+    let customerId = null;
+
+    if (user.role === "customer") {
+      const customer = await Customer.findOne({
+        userId: user._id,
+      });
+
+      customerId = customer?._id || null;
+      console.log("Customer ID:", customerId);
+    }
+
     const token = jwt.sign(
       {
         id: user._id,
@@ -264,7 +275,11 @@ export const loginUser = async (req, res) => {
       success: true,
       message: "Login successful",
       token,
-      user,
+
+      user: {
+        ...user.toObject(),
+        customerId,
+      },
     });
   } catch (error) {
     console.error("LOGIN ERROR:", error);
