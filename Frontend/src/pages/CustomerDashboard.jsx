@@ -117,11 +117,30 @@ export default function CustomerDashboard() {
         description: `Payment for ${shop.shopName}`,
         order_id: order.id,
 
-        handler: function (response) {
-          console.log("Payment success:", response);
+        handler: async function (response) {
+          try {
+            console.log("Payment success:", response);
 
-          alert("Payment successful!");
-          // next step: call backend verify API (we will do next)
+            const user = JSON.parse(localStorage.getItem("user"));
+
+            await API.post("/payment/verify-payment", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+
+              amount: shop.totalPending,
+
+              customerId: user.customerId,
+              shopkeeperId: shop.shopkeeperId,
+            });
+
+            alert("Payment successful!");
+
+            fetchCustomerData(); // refresh dashboard
+          } catch (error) {
+            console.log(error);
+            alert("Payment verification failed");
+          }
         },
 
         theme: {
@@ -135,7 +154,6 @@ export default function CustomerDashboard() {
       console.log(err);
     }
   };
-
   return (
     <div className="min-h-screen bg-[#f6f7fb] pb-24">
       {/* TOP HEADER */}
