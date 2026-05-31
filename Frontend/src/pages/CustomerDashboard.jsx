@@ -103,12 +103,20 @@ export default function CustomerDashboard() {
 
   const handlePayNow = async (amount, shop) => {
     try {
+      // 1. Create order from backend
       const { data } = await API.post("/payment/create-order", {
         amount,
       });
 
       const order = data.order;
 
+      if (!order) {
+        throw new Error("Order creation failed");
+      }
+
+      console.log("ORDER CREATED:", order);
+
+      // 2. Razorpay options
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -117,30 +125,53 @@ export default function CustomerDashboard() {
         description: `Payment for ${shop.shopName}`,
         order_id: order.id,
 
+        // ⚠️ IMPORTANT: handler
         handler: async function (response) {
           try {
-            console.log("Payment success:", response);
+            console.log("RAZORPAY RESPONSE:", response);
 
             const user = JSON.parse(localStorage.getItem("user"));
+            console.log("USER =", user);
+            console.log("CUSTOMER ID =", user.customerId);
 
-            await API.post("/payment/verify-payment", {
+            const verifyPayload = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
 
-              amount: shop.totalPending,
+              amount: amount, // use actual amount, not shop.totalPending
 
-              customerId: user.customerId,
+              customerId: user?.customerId,
               shopkeeperId: shop.shopkeeperId,
-            });
+            };
+
+            console.log("VERIFY PAYLOAD:", verifyPayload);
+
+            const verifyRes = await API.post(
+              "/payment/verify-payment",
+              verifyPayload,
+            );
+
+            console.log("VERIFY RESPONSE:", verifyRes.data);
 
             alert("Payment successful!");
 
-            fetchCustomerData(); // refresh dashboard
+            // refresh dashboard immediately
+            fetchCustomerData();
           } catch (error) {
-            console.log(error);
+            console.log(
+              "Verification Error:",
+              error?.response?.data || error.message,
+            );
             alert("Payment verification failed");
           }
+        },
+
+        // 3. Handle failure case (IMPORTANT ADDITION)
+        modal: {
+          ondismiss: function () {
+            console.log("Payment popup closed by user");
+          },
         },
 
         theme: {
@@ -148,10 +179,19 @@ export default function CustomerDashboard() {
         },
       };
 
+      // 4. Open Razorpay
       const razor = new window.Razorpay(options);
+
+      // 5. Handle payment failure event
+      razor.on("payment.failed", function (response) {
+        console.log("PAYMENT FAILED:", response.error);
+        alert("Payment failed. Try again.");
+      });
+
       razor.open();
     } catch (err) {
-      console.log(err);
+      console.log("Create Order Error:", err?.response?.data || err.message);
+      alert("Unable to initiate payment");
     }
   };
   return (
