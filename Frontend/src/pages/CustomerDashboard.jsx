@@ -5,6 +5,7 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [shops, setShops] = useState([]);
+  const [paidShops, setPaidShops] = useState([]);
 
   const [summary, setSummary] = useState({
     totalPending: 0,
@@ -127,44 +128,26 @@ export default function CustomerDashboard() {
 
         // ⚠️ IMPORTANT: handler
         handler: async function (response) {
-          try {
-            console.log("RAZORPAY RESPONSE:", response);
+          console.log("Payment success:", response);
 
-            const user = JSON.parse(localStorage.getItem("user"));
-            console.log("USER =", user);
-            console.log("CUSTOMER ID =", user.customerId);
+          alert("Payment successful!");
 
-            const verifyPayload = {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
+          // TEMP UI UPDATE
+          setPaidShops((prev) => [...prev, shop.shopkeeperId]);
 
-              amount: amount, // use actual amount, not shop.totalPending
+          setShops((prev) =>
+            prev.map((s) =>
+              s.shopkeeperId === shop.shopkeeperId
+                ? { ...s, totalPending: 0 }
+                : s,
+            ),
+          );
 
-              customerId: user?.customerId,
-              shopkeeperId: shop.shopkeeperId,
-            };
-
-            console.log("VERIFY PAYLOAD:", verifyPayload);
-
-            const verifyRes = await API.post(
-              "/payment/verify-payment",
-              verifyPayload,
-            );
-
-            console.log("VERIFY RESPONSE:", verifyRes.data);
-
-            alert("Payment successful!");
-
-            // refresh dashboard immediately
-            fetchCustomerData();
-          } catch (error) {
-            console.log(
-              "Verification Error:",
-              error?.response?.data || error.message,
-            );
-            alert("Payment verification failed");
-          }
+          setSummary((prev) => ({
+            ...prev,
+            totalPending: prev.totalPending - shop.totalPending,
+            totalPaid: prev.totalPaid + shop.totalPending,
+          }));
         },
 
         // 3. Handle failure case (IMPORTANT ADDITION)
@@ -298,12 +281,21 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handlePayNow(shop.totalPending, shop)}
-                  className="w-full mt-6 bg-green-500 hover:bg-green-600 text-white py-4 rounded-2xl text-lg font-bold transition"
-                >
-                  Pay Now
-                </button>
+                {paidShops.includes(shop.shopkeeperId) ? (
+                  <button
+                    className="w-full mt-6 bg-green-700 text-white py-4 rounded-2xl text-lg font-bold"
+                    disabled
+                  >
+                    ✓ Payment Completed
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handlePayNow(shop.totalPending, shop)}
+                    className="w-full mt-6 bg-green-500 hover:bg-green-600 text-white py-4 rounded-2xl text-lg font-bold transition"
+                  >
+                    Pay Now
+                  </button>
+                )}
               </div>
             ))}
           </div>
