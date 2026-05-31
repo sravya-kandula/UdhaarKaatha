@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Customer from "../models/Customer.js";
 
 // FIXED SHOPS
 const allowedShops = [
@@ -135,6 +136,23 @@ export const registerUser = async (req, res) => {
       role,
       shopName: role === "shopkeeper" ? shopName : "",
     });
+
+    // LINK CUSTOMER ACCOUNT TO EXISTING CUSTOMER RECORD
+    if (role === "customer") {
+      const linkedCustomers = await Customer.updateMany(
+        {
+          phone,
+        },
+        {
+          userId: user._id,
+        },
+      );
+
+      console.log("Linked Customer Records:", linkedCustomers.modifiedCount);
+    }
+
+    console.log("Customer Registration User ID:", user._id);
+    console.log("Customer Registration Phone:", phone);
 
     console.log("User Created:", user._id);
     console.log("========== REGISTER SUCCESS ==========");
