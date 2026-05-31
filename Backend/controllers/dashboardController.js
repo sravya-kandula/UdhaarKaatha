@@ -6,18 +6,25 @@ export const getDashboardStats = async (req, res) => {
   try {
     const shopkeeperId = req.user.id;
 
+    console.log("========== DASHBOARD STATS ==========");
+    console.log("Shopkeeper ID:", shopkeeperId);
+
     // GET ALL CUSTOMERS
     const customers = await Customer.find({
       shopkeeperId,
+      isArchived: false,
     }).sort({
       createdAt: -1,
     });
+
+    console.log("Customers Found:", customers.length);
 
     // ADD TRANSACTIONS TO EACH CUSTOMER
     const customersWithTransactions = await Promise.all(
       customers.map(async (customer) => {
         const transactions = await Transaction.find({
           customerId: customer._id,
+          shopkeeperId,
         }).sort({
           createdAt: -1,
         });
@@ -49,7 +56,7 @@ export const getDashboardStats = async (req, res) => {
 
     // TOTAL PENDING BALANCE
     const totalPendingBalance = customers.reduce(
-      (acc, customer) => acc + customer.currentBalance,
+      (acc, customer) => acc + Number(customer.currentBalance || 0),
       0,
     );
 
@@ -65,9 +72,18 @@ export const getDashboardStats = async (req, res) => {
     });
 
     const totalCollections = paymentTransactions.reduce(
-      (acc, transaction) => acc + transaction.paidAmount,
+      (acc, transaction) => acc + Number(transaction.paidAmount || 0),
       0,
     );
+
+    console.log("Total Customers:", totalCustomers);
+    console.log("Active Customers:", activeCustomers);
+    console.log("Cleared Customers:", clearedCustomers);
+    console.log("Overdue Customers:", overdueCustomers);
+    console.log("Pending Balance:", totalPendingBalance);
+    console.log("Total Transactions:", totalTransactions);
+    console.log("Total Collections:", totalCollections);
+    console.log("========== DASHBOARD SUCCESS ==========");
 
     res.status(200).json({
       success: true,
@@ -85,6 +101,8 @@ export const getDashboardStats = async (req, res) => {
       customers: customersWithTransactions,
     });
   } catch (error) {
+    console.error("DASHBOARD ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -97,6 +115,9 @@ export const getRecentTransactions = async (req, res) => {
   try {
     const shopkeeperId = req.user.id;
 
+    console.log("========== RECENT TRANSACTIONS ==========");
+    console.log("Shopkeeper ID:", shopkeeperId);
+
     const transactions = await Transaction.find({
       shopkeeperId,
     })
@@ -106,12 +127,17 @@ export const getRecentTransactions = async (req, res) => {
       .limit(10)
       .populate("customerId", "name phone");
 
+    console.log("Transactions Found:", transactions.length);
+    console.log("========== RECENT TRANSACTIONS SUCCESS ==========");
+
     res.status(200).json({
       success: true,
       count: transactions.length,
       transactions,
     });
   } catch (error) {
+    console.error("RECENT TRANSACTIONS ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -124,6 +150,9 @@ export const getMonthlyAnalytics = async (req, res) => {
   try {
     const shopkeeperId = req.user.id;
 
+    console.log("========== MONTHLY ANALYTICS ==========");
+    console.log("Shopkeeper ID:", shopkeeperId);
+
     const transactions = await Transaction.find({
       shopkeeperId,
     });
@@ -132,16 +161,21 @@ export const getMonthlyAnalytics = async (req, res) => {
     let totalCollections = 0;
 
     transactions.forEach((transaction) => {
-      // TOTAL UDHAR
       if (transaction.paymentType === "udhar") {
-        totalUdhar += transaction.remainingAmount;
+        totalUdhar += Number(transaction.remainingAmount || 0);
       }
 
-      // TOTAL COLLECTIONS
       if (transaction.transactionType === "payment") {
-        totalCollections += transaction.paidAmount;
+        totalCollections += Number(transaction.paidAmount || 0);
       }
     });
+
+    const profit = totalCollections - totalUdhar;
+
+    console.log("Total Udhar:", totalUdhar);
+    console.log("Total Collections:", totalCollections);
+    console.log("Profit:", profit);
+    console.log("========== ANALYTICS SUCCESS ==========");
 
     res.status(200).json({
       success: true,
@@ -149,10 +183,12 @@ export const getMonthlyAnalytics = async (req, res) => {
       analytics: {
         totalUdhar,
         totalCollections,
-        profit: totalCollections - totalUdhar,
+        profit,
       },
     });
   } catch (error) {
+    console.error("ANALYTICS ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -165,19 +201,28 @@ export const getTopCustomers = async (req, res) => {
   try {
     const shopkeeperId = req.user.id;
 
+    console.log("========== TOP CUSTOMERS ==========");
+    console.log("Shopkeeper ID:", shopkeeperId);
+
     const customers = await Customer.find({
       shopkeeperId,
+      isArchived: false,
     })
       .sort({
         currentBalance: -1,
       })
       .limit(5);
 
+    console.log("Top Customers Found:", customers.length);
+    console.log("========== TOP CUSTOMERS SUCCESS ==========");
+
     res.status(200).json({
       success: true,
       customers,
     });
   } catch (error) {
+    console.error("TOP CUSTOMERS ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,

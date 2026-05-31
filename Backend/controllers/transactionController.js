@@ -2,7 +2,9 @@ import Transaction from "../models/Transaction.js";
 import Customer from "../models/Customer.js";
 import Notification from "../models/Notification.js";
 
-// ADD TRANSACTION
+/**
+ * ADD TRANSACTION (PURCHASE / UDHAR)
+ */
 export const addTransaction = async (req, res) => {
   try {
     const { customerId, items, totalAmount, paymentType, paidAmount, dueDate } =
@@ -10,8 +12,15 @@ export const addTransaction = async (req, res) => {
 
     const shopkeeperId = req.user.id;
 
-    // find customer
+    console.log("========== ADD TRANSACTION ==========");
+    console.log("Shopkeeper ID:", shopkeeperId);
+    console.log("Customer ID:", customerId);
+    console.log("Request Body:", req.body);
+
+    // FIND CUSTOMER
     const customer = await Customer.findById(customerId);
+
+    console.log("Customer Found:", customer);
 
     if (!customer) {
       return res.status(404).json({
@@ -20,9 +29,30 @@ export const addTransaction = async (req, res) => {
       });
     }
 
-    // check udhar limit
+    // SAFE NUMBER CONVERSION
+    const total = Number(totalAmount || 0);
+    const paid = Number(paidAmount || 0);
+
+    console.log("Total:", total, "Paid:", paid);
+
+    // REMAINING AMOUNT CALCULATION (FIXED LOGIC)
+    let remainingAmount = paymentType === "paid" ? 0 : total - paid;
+
+    if (remainingAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Paid amount cannot exceed total amount",
+      });
+    }
+
+    console.log("Remaining Amount:", remainingAmount);
+
+    // UDHAR LIMIT CHECK
     if (paymentType === "udhar") {
-      const futureBalance = customer.currentBalance + totalAmount;
+      const futureBalance = Number(customer.currentBalance) + remainingAmount;
+
+      console.log("Future Balance:", futureBalance);
+      console.log("Udhar Limit:", customer.udharLimit);
 
       if (futureBalance > customer.udharLimit) {
         return res.status(400).json({
@@ -32,50 +62,37 @@ export const addTransaction = async (req, res) => {
       }
     }
 
-    // calculate remaining amount
-    let remainingAmount = 0;
-
-    if (paymentType === "paid") {
-      remainingAmount = 0;
-    } else {
-      remainingAmount = totalAmount - (paidAmount || 0);
-    }
-
-    // determine status
+    // STATUS CALCULATION
     let status = "pending";
 
-    if (remainingAmount === 0) {
-      status = "completed";
-    } else if (paidAmount > 0 && remainingAmount > 0) {
-      status = "partial";
-    }
+    if (remainingAmount === 0) status = "completed";
+    else if (paid > 0) status = "partial";
 
-    // create transaction
+    // CREATE TRANSACTION
     const transaction = await Transaction.create({
       shopkeeperId,
       customerId,
       items,
-      totalAmount,
-      paidAmount: paidAmount || 0,
+      totalAmount: total,
+      paidAmount: paid,
       remainingAmount,
       paymentType,
       dueDate,
       status,
     });
 
-    // update customer balance
-    customer.currentBalance += remainingAmount;
+    console.log("Transaction Created:", transaction._id);
 
-    // update customer status
-    if (customer.currentBalance === 0) {
-      customer.status = "cleared";
-    } else {
-      customer.status = "active";
-    }
+    // UPDATE CUSTOMER BALANCE (FIXED LOGIC)
+    customer.currentBalance = Number(customer.currentBalance) + remainingAmount;
+
+    customer.status = customer.currentBalance === 0 ? "cleared" : "active";
 
     await customer.save();
 
-    // CREATE NOTIFICATION FOR UDHAR
+    console.log("Customer Updated:", customer.currentBalance);
+
+    // NOTIFICATION ONLY FOR UDHAR
     if (paymentType === "udhar") {
       await Notification.create({
         customerId,
@@ -92,6 +109,8 @@ export const addTransaction = async (req, res) => {
       transaction,
     });
   } catch (error) {
+    console.error("ADD TRANSACTION ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -99,14 +118,14 @@ export const addTransaction = async (req, res) => {
   }
 };
 
-// GET CUSTOMER KHATA / LEDGER
+/**
+ * GET LEDGER
+ */
 export const getCustomerLedger = async (req, res) => {
   try {
     const { customerId } = req.params;
-
     const shopkeeperId = req.user.id;
 
-    // verify customer belongs to shopkeeper
     const customer = await Customer.findOne({
       _id: customerId,
       shopkeeperId,
@@ -119,13 +138,10 @@ export const getCustomerLedger = async (req, res) => {
       });
     }
 
-    // get all transactions
     const transactions = await Transaction.find({
       customerId,
       shopkeeperId,
-    }).sort({
-      createdAt: -1,
-    });
+    }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -141,14 +157,14 @@ export const getCustomerLedger = async (req, res) => {
   }
 };
 
-// RECORD PAYMENT
+/**
+ * RECORD PAYMENT
+ */
 export const recordPayment = async (req, res) => {
   try {
     const { customerId, amount } = req.body;
-
     const shopkeeperId = req.user.id;
 
-    // find customer
     const customer = await Customer.findOne({
       _id: customerId,
       shopkeeperId,
@@ -161,59 +177,49 @@ export const recordPayment = async (req, res) => {
       });
     }
 
-    // validation
-    if (amount <= 0) {
+    const pay = Number(amount);
+
+    if (pay <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid payment amount",
       });
     }
 
-    // prevent extra payment
-    if (amount > customer.currentBalance) {
+    if (pay > customer.currentBalance) {
       return res.status(400).json({
         success: false,
-        message: "Payment exceeds current balance",
+        message: "Payment exceeds balance",
       });
     }
 
-    // create payment transaction
     const transaction = await Transaction.create({
       shopkeeperId,
       customerId,
       items: [],
-      totalAmount: amount,
-      paidAmount: amount,
+      totalAmount: pay,
+      paidAmount: pay,
       remainingAmount: 0,
       paymentType: "paid",
       transactionType: "payment",
       status: "completed",
     });
 
-    // reduce customer balance
-    customer.currentBalance -= amount;
-
-    // auto-clear customer
-    if (customer.currentBalance === 0) {
-      customer.status = "cleared";
-    } else {
-      customer.status = "active";
-    }
+    customer.currentBalance -= pay;
+    customer.status = customer.currentBalance === 0 ? "cleared" : "active";
 
     await customer.save();
 
-    // CREATE PAYMENT NOTIFICATION
     await Notification.create({
       customerId,
       shopkeeperId,
       title: "Payment Received",
-      message: `Payment of ₹${amount} received`,
+      message: `Payment of ₹${pay} received`,
       type: "payment",
     });
 
     res.status(200).json({
       success: true,
-      message: "Payment recorded successfully",
       transaction,
       updatedBalance: customer.currentBalance,
     });
@@ -224,82 +230,60 @@ export const recordPayment = async (req, res) => {
     });
   }
 };
-// GET CUSTOMER TRANSACTIONS
-// GET CUSTOMER TRANSACTIONS
-// GET CUSTOMER TRANSACTIONS
+
+/**
+ * CUSTOMER DASHBOARD TRANSACTIONS
+ */
 export const getCustomerTransactions = async (req, res) => {
   try {
-    // LOGGED-IN CUSTOMER USER ID
     const userId = req.user.id;
 
-    // FIND CUSTOMER PROFILE LINKED TO USER
-    const customer = await Customer.findOne({
-      userId,
-    });
+    const customer = await Customer.findOne({ userId });
 
     if (!customer) {
       return res.status(404).json({
         success: false,
-        message: "Customer profile not linked",
+        message: "Customer not linked",
       });
     }
 
-    // GET ALL TRANSACTIONS OF THIS CUSTOMER
     const transactions = await Transaction.find({
       customerId: customer._id,
-    })
-      .populate("shopkeeperId", "name email shopName")
-      .populate("customerId", "name phone")
-      .sort({
-        createdAt: -1,
-      });
+    }).populate("shopkeeperId", "name email shopName");
 
-    // TOTALS
     let totalPending = 0;
     let totalPaid = 0;
     let totalFine = 0;
 
-    // GROUP BY SHOP
     const shopMap = {};
 
-    transactions.forEach((transaction) => {
-      totalPending += transaction.remainingAmount || 0;
+    transactions.forEach((t) => {
+      totalPending += t.remainingAmount || 0;
+      totalPaid += t.paidAmount || 0;
+      totalFine += t.fineAmount || 0;
 
-      totalPaid += transaction.paidAmount || 0;
+      const id = t.shopkeeperId?._id?.toString();
+      if (!id) return;
 
-      totalFine += transaction.fineAmount || 0;
-
-      const shopId = transaction.shopkeeperId?._id?.toString();
-
-      if (!shopId) return;
-
-      // CREATE SHOP ENTRY
-      if (!shopMap[shopId]) {
-        shopMap[shopId] = {
-          shopkeeperId: shopId,
-          shopName:
-            transaction.shopkeeperId?.shopName ||
-            transaction.shopkeeperId?.name ||
-            "Shop",
+      if (!shopMap[id]) {
+        shopMap[id] = {
+          shopkeeperId: id,
+          shopName: t.shopkeeperId?.shopName || t.shopkeeperId?.name,
           totalPending: 0,
           totalTransactions: 0,
-          latestTransaction: transaction.createdAt,
+          latestTransaction: t.createdAt,
         };
       }
 
-      // UPDATE SHOP DATA
-      shopMap[shopId].totalPending += transaction.remainingAmount || 0;
-
-      shopMap[shopId].totalTransactions += 1;
+      shopMap[id].totalPending += t.remainingAmount || 0;
+      shopMap[id].totalTransactions += 1;
     });
-
-    const shops = Object.values(shopMap);
 
     res.status(200).json({
       success: true,
       customer,
       transactions,
-      shops,
+      shops: Object.values(shopMap),
       totalPending,
       totalPaid,
       totalFine,

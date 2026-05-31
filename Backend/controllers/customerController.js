@@ -1,12 +1,17 @@
 import Customer from "../models/Customer.js";
 import User from "../models/User.js";
 
-// ADD CUSTOMER
 export const addCustomer = async (req, res) => {
   try {
     const { name, phone, address, udharLimit, finePerDay, dueDate } = req.body;
 
     const shopkeeperId = req.user.id;
+
+    console.log("========== ADD CUSTOMER ==========");
+    console.log("Shopkeeper ID:", shopkeeperId);
+    console.log("Customer Name:", name);
+    console.log("Phone Received:", phone);
+    console.log("Request Body:", req.body);
 
     // CHECK IF CUSTOMER HAS REGISTERED ACCOUNT
     const user = await User.findOne({
@@ -14,6 +19,17 @@ export const addCustomer = async (req, res) => {
       role: "customer",
     });
 
+    console.log("Customer User Found:", user);
+
+    if (user) {
+      console.log("Linked User ID:", user._id);
+      console.log("Linked User Name:", user.name);
+      console.log("Linked User Phone:", user.phone);
+    } else {
+      console.log("NO REGISTERED CUSTOMER FOUND FOR PHONE:", phone);
+    }
+
+    // CREATE CUSTOMER
     const customer = await Customer.create({
       shopkeeperId,
       userId: user ? user._id : null,
@@ -25,12 +41,20 @@ export const addCustomer = async (req, res) => {
       dueDate,
     });
 
+    console.log("Customer Created:", customer);
+    console.log("Customer Mongo ID:", customer._id);
+    console.log("Customer UserId Saved:", customer.userId);
+
+    console.log("========== CUSTOMER CREATED ==========");
+
     res.status(201).json({
       success: true,
       message: "Customer added successfully",
       customer,
     });
   } catch (error) {
+    console.error("ADD CUSTOMER ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,

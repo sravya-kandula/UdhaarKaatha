@@ -16,6 +16,14 @@ export const registerUser = async (req, res) => {
   try {
     const { name, phone, email, password, role, shopName } = req.body;
 
+    console.log("========== REGISTER USER ==========");
+    console.log("Request Body:", req.body);
+    console.log("Name:", name);
+    console.log("Phone:", phone);
+    console.log("Email:", email);
+    console.log("Role:", role);
+    console.log("Shop Name:", shopName);
+
     // EMPTY CHECK
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -67,9 +75,12 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // CHECK EXISTING EMAIL
+    // CHECK EXISTING USER
     const existingUser = await User.findOne({ email });
     const existingPhone = await User.findOne({ phone });
+
+    console.log("Existing User:", existingUser);
+    console.log("Existing Phone:", existingPhone);
 
     if (existingPhone) {
       return res.status(400).json({
@@ -85,25 +96,24 @@ export const registerUser = async (req, res) => {
 
     // SHOPKEEPER VALIDATION
     if (role === "shopkeeper") {
-      // SHOP REQUIRED
       if (!shopName) {
         return res.status(400).json({
           message: "Please select a shop",
         });
       }
 
-      // VALID SHOP CHECK
       if (!allowedShops.includes(shopName)) {
         return res.status(400).json({
           message: "Invalid shop selected",
         });
       }
 
-      // ONE SHOPKEEPER PER SHOP
       const existingShopkeeper = await User.findOne({
         role: "shopkeeper",
         shopName,
       });
+
+      console.log("Existing Shopkeeper:", existingShopkeeper);
 
       if (existingShopkeeper) {
         return res.status(400).json({
@@ -113,6 +123,7 @@ export const registerUser = async (req, res) => {
     }
 
     // HASH PASSWORD
+    console.log("Hashing Password...");
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // CREATE USER
@@ -125,12 +136,17 @@ export const registerUser = async (req, res) => {
       shopName: role === "shopkeeper" ? shopName : "",
     });
 
+    console.log("User Created:", user._id);
+    console.log("========== REGISTER SUCCESS ==========");
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
       user,
     });
   } catch (error) {
+    console.error("REGISTER ERROR:", error);
+
     res.status(500).json({
       message: error.message,
     });
@@ -141,6 +157,11 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password, role, shopName } = req.body;
+
+    console.log("========== LOGIN USER ==========");
+    console.log("Email:", email);
+    console.log("Role:", role);
+    console.log("Shop Name:", shopName);
 
     // EMPTY CHECK
     if (!email || !password) {
@@ -161,6 +182,8 @@ export const loginUser = async (req, res) => {
     // FIND USER
     const user = await User.findOne({ email });
 
+    console.log("User Found:", user);
+
     if (!user) {
       return res.status(404).json({
         message: "User not found",
@@ -169,6 +192,8 @@ export const loginUser = async (req, res) => {
 
     // PASSWORD CHECK
     const isMatch = await bcrypt.compare(password, user.password);
+
+    console.log("Password Match:", isMatch);
 
     if (!isMatch) {
       return res.status(400).json({
@@ -183,7 +208,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // SHOP VALIDATION FOR SHOPKEEPER
+    // SHOP VALIDATION
     if (user.role === "shopkeeper") {
       if (!shopName) {
         return res.status(400).json({
@@ -199,6 +224,10 @@ export const loginUser = async (req, res) => {
     }
 
     // TOKEN
+    console.log("Generating Token...");
+    console.log("User ID:", user._id);
+    console.log("User Role:", user.role);
+
     const token = jwt.sign(
       {
         id: user._id,
@@ -210,6 +239,9 @@ export const loginUser = async (req, res) => {
       },
     );
 
+    console.log("Login Successful");
+    console.log("========== LOGIN SUCCESS ==========");
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -217,6 +249,8 @@ export const loginUser = async (req, res) => {
       user,
     });
   } catch (error) {
+    console.error("LOGIN ERROR:", error);
+
     res.status(500).json({
       message: error.message,
     });
