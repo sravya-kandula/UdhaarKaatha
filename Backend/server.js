@@ -7,6 +7,7 @@ import transactionRoutes from "./routes/transactionRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import checkOverdueCustomers from "./utils/checkOverdueCustomers.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 import authRoutes from "./routes/authRoutes.js";
 
@@ -24,6 +25,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use("/api/payment", paymentRoutes);
 
 // AUTH ROUTES
 app.use("/api/auth", authRoutes);
@@ -41,6 +43,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+console.log(process.env.RAZORPAY_KEY_ID);
 checkOverdueCustomers();
 // CHECK EVERY 1 HOUR
 setInterval(

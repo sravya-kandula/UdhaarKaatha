@@ -28,26 +28,23 @@ export const addTransaction = async (req, res) => {
         message: "Customer not found",
       });
     }
-
-    // SAFE NUMBER CONVERSION
-    const total = Number(totalAmount || 0);
+    const total = Number(totalAmount);
     const paid = Number(paidAmount || 0);
 
-    console.log("Total:", total, "Paid:", paid);
-
-    // REMAINING AMOUNT CALCULATION (FIXED LOGIC)
-    let remainingAmount = paymentType === "paid" ? 0 : total - paid;
-
-    if (remainingAmount < 0) {
+    // BASIC VALIDATION
+    if (paid > total) {
       return res.status(400).json({
         success: false,
         message: "Paid amount cannot exceed total amount",
       });
     }
 
+    // REMAINING AMOUNT
+    let remainingAmount = total - paid;
+
     console.log("Remaining Amount:", remainingAmount);
 
-    // UDHAR LIMIT CHECK
+    // UDHAR LIMIT CHECK (ONLY REMAINING GOES TO UDHAR)
     if (paymentType === "udhar") {
       const futureBalance = Number(customer.currentBalance) + remainingAmount;
 
@@ -61,7 +58,6 @@ export const addTransaction = async (req, res) => {
         });
       }
     }
-
     // STATUS CALCULATION
     let status = "pending";
 
