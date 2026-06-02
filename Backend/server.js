@@ -22,7 +22,9 @@ checkOverdueCustomers();
 
 app.use(
   cors({
-    origin: "https://udhaar-kaatha.vercel.app/",
+    origin: "https://udhaar-kaatha.vercel.app",
+  "https://udhaar-kaatha-git-main-sravya-kandulas-projects.vercel.app",
+  "https://udhaar-kaatha-lsbsb6lc7-sravya-kandulas-projects.vercel.app",
     credentials: true,
   }),
 );
