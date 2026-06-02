@@ -22,7 +22,7 @@ checkOverdueCustomers();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://udhaar-kaatha.vercel.app/",
     credentials: true,
   }),
 );
